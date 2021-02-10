@@ -3,7 +3,14 @@
     <v-dialog v-if="deleteitem !== undefined" v-model="deletedialog">
       <v-card>
         <v-card-title class="headline">Confirm delete.</v-card-title>
-        <v-card-text> Delete {{ items[deleteitem] }}? </v-card-text>
+        <v-card-text>
+          Delete
+          {{
+            typeof items[deleteitem] === "string"
+              ? items[deleteitem]
+              : deleteitem + 1
+          }}?
+        </v-card-text>
         <v-divider></v-divider>
 
         <v-card-actions>
@@ -48,7 +55,7 @@
     </v-dialog>
 
     <v-toolbar flat>
-      <v-toolbar-title>List</v-toolbar-title>
+      <v-toolbar-title>{{ title || "List" }}</v-toolbar-title>
       <v-spacer></v-spacer>
       <v-btn icon @click="openAdddialog()">
         <v-icon>mdi-plus</v-icon>
@@ -57,31 +64,39 @@
     <!-- <v-card-title>Rejects list</v-card-title>
     <v-card-subtitle>Name must contain</v-card-subtitle> -->
     <v-divider></v-divider>
-    <v-list>
-      <v-list-item v-for="(name, i) in items" :key="i">
-        <v-list-item-content>{{ name }}</v-list-item-content>
-        <v-list-item-action>
-          <v-btn icon>
-            <v-icon color="grey lighten-1" @click="openEditdialog(i)"
-              >mdi-pencil</v-icon
-            >
-          </v-btn>
-        </v-list-item-action>
-        <v-list-item-action>
-          <v-btn icon>
-            <v-icon color="grey lighten-1" @click="openDeletedialog(i)"
-              >mdi-delete</v-icon
-            >
-          </v-btn>
-        </v-list-item-action>
-      </v-list-item>
-    </v-list>
+    <v-card-text v-if="subtitle">{{ subtitle }}</v-card-text>
+    <slot
+      name="list"
+      v-bind:items="items"
+      v-bind:openEditdialog="openEditdialog"
+      v-bind:openDeletedialog="openDeletedialog"
+    >
+      <v-list>
+        <v-list-item v-for="(name, i) in items" :key="i">
+          <v-list-item-content>{{ name }}</v-list-item-content>
+          <v-list-item-action>
+            <v-btn icon>
+              <v-icon color="grey lighten-1" @click="openEditdialog(i)"
+                >mdi-pencil</v-icon
+              >
+            </v-btn>
+          </v-list-item-action>
+          <v-list-item-action>
+            <v-btn icon>
+              <v-icon color="grey lighten-1" @click="openDeletedialog(i)"
+                >mdi-delete</v-icon
+              >
+            </v-btn>
+          </v-list-item-action>
+        </v-list-item>
+      </v-list>
+    </slot>
   </v-card>
 </template>
 
 <script>
 export default {
-  props: ["name", "items", "form"],
+  props: ["name", "items", "form", "title", "subtitle"],
   data() {
     return {
       deleteitem: undefined,

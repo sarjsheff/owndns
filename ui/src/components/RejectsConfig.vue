@@ -3,6 +3,8 @@
     :rules="rules"
     set="setrejectnames"
     :items="$store.state.config.RejectNames"
+    title="List of reject patterns"
+    subtitle="If string Reject is found in the DNS request name, an empty response is formed or the redirect address is transmitted."
   ></array-crud>
 </template>
 

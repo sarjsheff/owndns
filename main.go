@@ -35,16 +35,17 @@ func parseQuery(m *dns.Msg, w dns.ResponseWriter) {
 	for _, q := range m.Question {
 		switch q.Qtype {
 		case dns.TypeA:
-			rej := !Validate(q.Name)
 
 			clientip := strings.Split(w.RemoteAddr().String(), ":")[0]
+
+			rej := !Validate(q.Name, clientip)
 
 			if !rej {
 				m1 := new(dns.Msg)
 				m1.Id = dns.Id()
 				m1.RecursionDesired = true
 				m1.Question = make([]dns.Question, 1)
-				m1.Question = m.Question //dns.Question{"miek.nl.", dns.TypeMX, dns.ClassINET}
+				m1.Question = m.Question
 
 				if ans, ok := cache[q]; ok && time.Since(ans.Time).Seconds() < float64(ans.Answer[0].Header().Ttl) {
 					m.Answer = ans.Answer

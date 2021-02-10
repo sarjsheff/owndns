@@ -7,6 +7,8 @@
     @save="save()"
     @add="add()"
     @del="del($event)"
+    :title="title"
+    :subtitle="subtitle"
   >
     <template v-slot:form="{ form }">
       <v-row>
@@ -22,7 +24,7 @@
 import CrudView from "./CrudView.vue";
 export default {
   components: { CrudView },
-  props: ["items", "set", "rules"],
+  props: ["items", "set", "rules", "title", "subtitle"],
   data() {
     return {
       form: { id: undefined, name: undefined },

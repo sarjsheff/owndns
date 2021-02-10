@@ -7,9 +7,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
 var configpath = flag.String("c", "./owndns.config", "`Path` to config file.")
+
+type Rule struct {
+	Ip         string
+	RejectName string `json:",omitempty"`
+	AcceptOnly string `json:",omitempty"`
+}
 
 type Config struct {
 	RedirectIp  string   `json:",omitempty"`
@@ -18,6 +25,7 @@ type Config struct {
 	DNSListen   string   `json:",omitempty"`
 	HttpListen  string   `json:",omitempty"`
 	Logging     bool     `json:",omitempty"`
+	Rules       []Rule
 }
 
 var loglines int = 100
@@ -36,7 +44,7 @@ func Init() {
 	fmt.Printf("OwnDns v%s\n\n", BuildTime)
 	if _, err := os.Stat(*configpath); os.IsNotExist(err) {
 
-		fmt.Println("Config not found.\n")
+		fmt.Println("Config not found.")
 
 		flag.PrintDefaults()
 		fmt.Println()
@@ -69,8 +77,33 @@ func Init() {
 	// log.Println(config)
 }
 
-func Validate(name string) bool {
-	return !stringInSlice(name, config.RejectNames)
+func Validate(name string, ip string) bool {
+	ret := true
+	for _, s := range GetRules(ip) {
+		if s.AcceptOnly == "*" {
+			return true
+		}
+		if s.RejectName == "*" {
+			ret = false
+		} else {
+			if len(s.RejectName) > 2 {
+				if strings.Contains(name, s.RejectName) {
+					ret = false
+				}
+			} else if len(s.AcceptOnly) > 2 {
+				if strings.Contains(name, s.AcceptOnly) {
+					return true
+				}
+			}
+		}
+	}
+
+	if stringInSlice(name, config.RejectNames) {
+		ret = false
+	} else if ret == true {
+		ret = true
+	}
+	return ret
 }
 
 func GetRedirectIp() (string, error) {
@@ -152,4 +185,14 @@ func ArrDel(arr *[]string, id int) {
 func ArrSave(arr *[]string, id int, name string) {
 	(*arr)[id] = name
 	configwriter <- config
+}
+
+func GetRules(ip string) (ret []Rule) {
+
+	for _, s := range config.Rules {
+		if s.Ip == ip {
+			ret = append(ret, s)
+		}
+	}
+	return ret
 }

@@ -49,6 +49,11 @@
             <last-log />
           </v-col>
         </v-row>
+        <v-row v-if="selected == 'Rules'">
+          <v-col>
+            <rules-config />
+          </v-col>
+        </v-row>
         <v-row v-if="selected == 'Rejects'">
           <v-col>
             <rejects-config />
@@ -73,6 +78,7 @@ import DnsStat from "./components/DnsStat";
 import LastLog from "./components/LastLog.vue";
 import RejectsConfig from "./components/RejectsConfig.vue";
 import RelayConfig from "./components/RelayConfig.vue";
+import RulesConfig from "./components/RulesConfig.vue";
 
 export default {
   name: "App",
@@ -83,6 +89,7 @@ export default {
     RejectsConfig,
     RelayConfig,
     ConfigConfig,
+    RulesConfig,
   },
 
   data: () => ({
@@ -90,6 +97,7 @@ export default {
     items: [
       { title: "Statistics", icon: "mdi-dns" },
       { title: "Logs", icon: "mdi-dns" },
+      { title: "Rules", icon: "mdi-dns" },
       { title: "Rejects", icon: "mdi-dns" },
       { title: "Relay DNS", icon: "mdi-dns" },
       { title: "Config", icon: "mdi-dns" },
