@@ -3,6 +3,7 @@
     set="setrelaydns"
     :rules="rules"
     :items="$store.state.config.RelayDns"
+    title="List of relay DNS"
   ></array-crud>
 </template>
 

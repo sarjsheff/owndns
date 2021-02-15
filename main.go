@@ -15,6 +15,7 @@ type Item struct {
 	Reject bool
 	Answer []dns.RR
 	Date   string
+	Cache  bool
 }
 
 type CacheItem struct {
@@ -49,7 +50,7 @@ func parseQuery(m *dns.Msg, w dns.ResponseWriter) {
 
 				if ans, ok := cache[q]; ok && time.Since(ans.Time).Seconds() < float64(ans.Answer[0].Header().Ttl) {
 					m.Answer = ans.Answer
-					i := Item{clientip, q, rej, nil, time.Now().Format(time.RFC3339)}
+					i := Item{clientip, q, rej, ans.Answer, time.Now().Format(time.RFC3339), true}
 					queue <- i
 					Log(i)
 					// log.Println("found in cache")
@@ -60,7 +61,7 @@ func parseQuery(m *dns.Msg, w dns.ResponseWriter) {
 
 						if err == nil {
 							m.Answer = in.Answer
-							i := Item{clientip, q, rej, in.Answer, time.Now().Format(time.RFC3339)}
+							i := Item{clientip, q, rej, in.Answer, time.Now().Format(time.RFC3339), false}
 							queue <- i
 							Log(i)
 							break
@@ -76,10 +77,10 @@ func parseQuery(m *dns.Msg, w dns.ResponseWriter) {
 					rr, err := dns.NewRR(fmt.Sprintf("%s A %s", q.Name, rip))
 					if err == nil {
 						m.Answer = append(m.Answer, rr)
-						Log(Item{clientip, q, rej, m.Answer, time.Now().Format(time.RFC3339)})
+						Log(Item{clientip, q, rej, m.Answer, time.Now().Format(time.RFC3339), false})
 					}
 				} else {
-					Log(Item{clientip, q, rej, nil, time.Now().Format(time.RFC3339)})
+					Log(Item{clientip, q, rej, nil, time.Now().Format(time.RFC3339), false})
 				}
 			}
 

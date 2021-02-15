@@ -16,13 +16,18 @@
           <tr
             v-for="(item, i) in $store.state.lastlog"
             :key="`${i}#${item.Date}`"
+            v-bind:class="{
+              'light-green': item.Cache,
+              'lighten-5': item.Cache || item.Reject,
+              red: item.Reject,
+            }"
           >
             <td>{{ item.Date }}</td>
             <td>{{ item.Ip }}</td>
             <td>{{ item.Q.Name }}</td>
             <td>
               <v-chip
-                class="ma-2"
+                class="ma-1"
                 label
                 small
                 v-for="(d, i) in item.Answer"
@@ -31,7 +36,9 @@
                 {{ answer(d) }}
               </v-chip>
             </td>
-            <td><v-icon small v-if="item.Rejects">mdi-cancel</v-icon></td>
+            <td>
+              <v-icon small v-if="item.Reject === true">mdi-cancel</v-icon>
+            </td>
           </tr>
         </tbody>
       </template>
