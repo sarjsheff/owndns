@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/miekg/dns"
@@ -27,7 +28,8 @@ var BuildTime string
 
 var queue chan Item
 
-var cache map[dns.Question]CacheItem
+// var cache map[dns.Question]CacheItem
+var synccache sync.Map
 
 var cli = new(dns.Client)
 
@@ -48,9 +50,10 @@ func parseQuery(m *dns.Msg, w dns.ResponseWriter) {
 				m1.Question = make([]dns.Question, 1)
 				m1.Question = m.Question
 
-				if ans, ok := cache[q]; ok && time.Since(ans.Time).Seconds() < float64(ans.Answer[0].Header().Ttl) {
-					m.Answer = ans.Answer
-					i := Item{clientip, q, rej, ans.Answer, time.Now().Format(time.RFC3339), true}
+				// if ans, ok := cache[q]; ok && time.Since(ans.Time).Seconds() < float64(ans.Answer[0].Header().Ttl) {
+				if ans, ok := synccache.Load(q); ok && time.Since(ans.(CacheItem).Time).Seconds() < float64(ans.(CacheItem).Answer[0].Header().Ttl) {
+					m.Answer = ans.(CacheItem).Answer
+					i := Item{clientip, q, rej, ans.(CacheItem).Answer, time.Now().Format(time.RFC3339), true}
 					queue <- i
 					Log(i)
 					// log.Println("found in cache")
@@ -111,7 +114,9 @@ func queueworker() {
 
 		if x.Answer != nil {
 			log.Printf("ttl: %d \n", x.Answer[0].Header().Ttl)
-			cache[x.Q] = CacheItem{x.Answer, time.Now()}
+			tmp := CacheItem{x.Answer, time.Now()}
+			// cache[x.Q] = tmp
+			synccache.Store(x.Q, tmp)
 		}
 	}
 }
@@ -119,7 +124,7 @@ func queueworker() {
 func main() {
 	Init()
 
-	cache = make(map[dns.Question]CacheItem)
+	// cache = make(map[dns.Question]CacheItem)
 
 	queue = make(chan Item, 100)
 
