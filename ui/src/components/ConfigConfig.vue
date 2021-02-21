@@ -27,7 +27,7 @@
 export default {
   data() {
     return {
-      redirectip: this.$store.state.config.RedirectIp,
+      redirectip: this.$store.state.config.RedirectIP,
       valid: true,
       rules: {
         ip: (value) => {
@@ -41,13 +41,17 @@ export default {
   },
   methods: {
     save() {
-      this.$store.dispatch("saveconfig", {
-        ...this.$store.state.config,
-        RedirectIp: this.redirectip,
+      this.$store.dispatch("setvalue", {
+        RedirectIP: this.redirectip,
       });
+
+      // this.$store.dispatch("saveconfig", {
+      //   ...this.$store.state.config,
+      //   RedirectIp: this.redirectip,
+      // });
     },
     undo() {
-      this.redirectip = this.$store.state.config.RedirectIp;
+      this.redirectip = this.$store.state.config.RedirectIP;
     },
   },
 };

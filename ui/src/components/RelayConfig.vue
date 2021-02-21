@@ -1,8 +1,8 @@
 <template>
   <array-crud
-    set="setrelaydns"
     :rules="rules"
-    :items="$store.state.config.RelayDns"
+    dispatch="relaydns"
+    :items="$store.state.config.RelayDNS"
     title="List of relay DNS"
   ></array-crud>
 </template>

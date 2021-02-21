@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "core-js": "^3.6.5",
+    "sjcl": "^1.0.8",
+    "socket.io-client": "^1.4",
     "vue": "^2.6.11",
     "vuetify": "^2.4.0",
     "vuex": "^3.4.0"

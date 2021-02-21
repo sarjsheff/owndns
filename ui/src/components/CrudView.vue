@@ -27,8 +27,15 @@
           editdialog ? "Edit" : "Add"
         }}</v-card-title>
         <v-container>
+          <v-alert v-if="adderror" dense type="error">{{
+            this.adderror
+          }}</v-alert>
           <v-form v-model="valid" ref="formref">
-            <slot name="form" v-bind:form="form"></slot>
+            <slot
+              name="form"
+              v-bind:form="form"
+              v-bind:editdialog="editdialog"
+            ></slot>
           </v-form>
         </v-container>
         <v-card-actions>
@@ -96,13 +103,16 @@
 
 <script>
 export default {
-  props: ["name", "items", "form", "title", "subtitle"],
+  props: ["name", "items", "form", "title", "subtitle", "add", "del", "save"],
   data() {
     return {
       deleteitem: undefined,
       deletedialog: false,
       editdialog: false,
       adddialog: false,
+      adderror: undefined,
+      delerror: undefined,
+      saveerror: undefined,
       valid: true,
       // form: {
       //   id: undefined,
@@ -143,17 +153,57 @@ export default {
       this.$emit("reset");
     },
     saveItem() {
-      this.$emit("save");
-      this.closeAdddialog();
+      if (this.save) {
+        this.save()
+          .then(() => {
+            this.$emit("save");
+            this.closeAdddialog();
+          })
+          .catch((e) => {
+            if (e.error) {
+              this.saveerror = e.error;
+            }
+            this.valid = false;
+          });
+      } else {
+        this.$emit("save");
+        this.closeAdddialog();
+      }
     },
     addItem() {
-      this.$emit("add");
-      this.closeAdddialog();
+      if (this.add) {
+        this.add()
+          .then(() => {
+            this.$emit("add");
+            this.closeAdddialog();
+          })
+          .catch((e) => {
+            if (e.error) {
+              this.adderror = e.error;
+            }
+            this.valid = false;
+          });
+      } else {
+        this.$emit("add");
+        this.closeAdddialog();
+      }
     },
     deleteItem() {
-      this.$emit("del", this.deleteitem);
-      // this.$store.dispatch("del" + this.name, this.deleteitem);
-      this.closeDeletedialog();
+      if (this.del) {
+        this.del(this.deleteitem)
+          .then(() => {
+            this.$emit("del", this.deleteitem);
+            this.closeDeletedialog();
+          })
+          .catch((e) => {
+            if (e.error) {
+              this.delerror = e.error;
+            }
+          });
+      } else {
+        this.$emit("del", this.deleteitem);
+        this.closeDeletedialog();
+      }
     },
 
     openDeletedialog(i) {

@@ -24,7 +24,7 @@
 import CrudView from "./CrudView.vue";
 export default {
   components: { CrudView },
-  props: ["items", "set", "rules", "title", "subtitle"],
+  props: ["items", "set", "rules", "title", "subtitle", "dispatch"],
   data() {
     return {
       form: { id: undefined, name: undefined },
@@ -41,27 +41,13 @@ export default {
       console.log(this.items[id]);
     },
     save() {
-      this.$store.dispatch(
-        this.set,
-        this.items.map((e, idx) => {
-          if (idx === this.form.id) {
-            return this.form.name;
-          } else {
-            return e;
-          }
-        })
-      );
+      this.$store.dispatch(`${this.dispatch}/save`, this.form);
     },
     add() {
-      this.$store.dispatch(this.set, [...this.items, this.form.name]);
+      this.$store.dispatch(`${this.dispatch}/add`, this.form.name);
     },
     del(id) {
-      this.$store.dispatch(
-        this.set,
-        this.items.filter((e, idx) => {
-          return idx != id;
-        })
-      );
+      this.$store.dispatch(`${this.dispatch}/del`, id);
     },
   },
 };

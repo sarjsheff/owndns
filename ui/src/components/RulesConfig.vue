@@ -1,19 +1,104 @@
 <template>
-  <object-crud set="setrules"></object-crud>
+  <crud-view
+    :items="$store.state.config.Rules"
+    :form="form"
+    @reset="reset()"
+    @edit="edit($event)"
+    @save="save()"
+    @add="add()"
+    @del="del($event)"
+    title="List of rules"
+    subtitle="If string Reject is found in the DNS request name, an empty response is formed or the redirect address is transmitted. If line Accept is found in the name of the request, processing continues in spite of the existing Rejects. The * character handles all possible situations. Accept = * resets all Reject, Reject = * does not process all incoming requests except Accept."
+  >
+    <template v-slot:list="{ items, openEditdialog, openDeletedialog }">
+      <v-simple-table>
+        <template v-slot:default>
+          <thead>
+            <tr>
+              <th class="text-left">IP</th>
+              <th class="text-left">Reject</th>
+              <th class="text-left">Accept</th>
+              <th class="text-right"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, id) in items" :key="id">
+              <td>{{ item.IP }}</td>
+              <td>{{ item.RejectName }}</td>
+              <td>{{ item.AcceptOnly }}</td>
+              <td class="text-right">
+                <v-btn icon>
+                  <v-icon color="grey lighten-1" @click="openEditdialog(id)">
+                    mdi-pencil
+                  </v-icon>
+                </v-btn>
+                <v-btn icon>
+                  <v-icon color="grey lighten-1" @click="openDeletedialog(id)">
+                    mdi-delete
+                  </v-icon>
+                </v-btn>
+              </td>
+            </tr>
+          </tbody>
+        </template>
+      </v-simple-table>
+    </template>
+    <template v-slot:form="{ form }">
+      <v-row>
+        <v-col>
+          <v-text-field label="IP" v-model="form.name.IP" :rules="[checkip]" />
+        </v-col>
+      </v-row>
+      <v-row>
+        <v-col>
+          <v-text-field label="Reject" v-model="form.name.RejectName" />
+        </v-col>
+      </v-row>
+      <v-row>
+        <v-col>
+          <v-text-field label="Accept" v-model="form.name.AcceptOnly" />
+        </v-col>
+      </v-row>
+    </template>
+  </crud-view>
 </template>
 
 <script>
-import ObjectCrud from "./ObjectCrud.vue";
+import CrudView from "./CrudView.vue";
 export default {
-  components: { ObjectCrud },
+  components: { CrudView },
+  // props: ["items", "set"],
   data() {
     return {
-      rules: [
-        (value) => {
-          return (value || "").trim().length > 2;
-        },
-      ],
+      form: { id: undefined, name: {} },
+      dispatch: "rules",
     };
+  },
+  methods: {
+    checkip: (value) => {
+      return (
+        (value || "").trim().match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) !=
+        null
+      );
+    },
+
+    reset() {
+      this.form.id = undefined;
+      this.form.name = {};
+    },
+    edit(id) {
+      this.form.id = id;
+      this.form.name = this.$store.state.config.Rules[id];
+    },
+    save() {
+      this.$store.dispatch(`${this.dispatch}/save`, this.form);
+    },
+    add() {
+      this.$store.dispatch(`${this.dispatch}/add`, this.form.name);
+    },
+    del(id) {
+      this.$store.dispatch(`${this.dispatch}/del`, id);
+    },
   },
 };
 </script>

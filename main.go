@@ -10,8 +10,9 @@ import (
 	"github.com/miekg/dns"
 )
 
+// Item - DNS request item.
 type Item struct {
-	Ip     string
+	IP     string
 	Q      dns.Question
 	Reject bool
 	Answer []dns.RR
@@ -19,16 +20,17 @@ type Item struct {
 	Cache  bool
 }
 
+// CacheItem -
 type CacheItem struct {
 	Answer []dns.RR
 	Time   time.Time
 }
 
+// BuildTime - Building time.
 var BuildTime string
 
 var queue chan Item
 
-// var cache map[dns.Question]CacheItem
 var synccache sync.Map
 
 var cli = new(dns.Client)
@@ -50,7 +52,6 @@ func parseQuery(m *dns.Msg, w dns.ResponseWriter) {
 				m1.Question = make([]dns.Question, 1)
 				m1.Question = m.Question
 
-				// if ans, ok := cache[q]; ok && time.Since(ans.Time).Seconds() < float64(ans.Answer[0].Header().Ttl) {
 				if ans, ok := synccache.Load(q); ok && time.Since(ans.(CacheItem).Time).Seconds() < float64(ans.(CacheItem).Answer[0].Header().Ttl) {
 					m.Answer = ans.(CacheItem).Answer
 					i := Item{clientip, q, rej, ans.(CacheItem).Answer, time.Now().Format(time.RFC3339), true}
@@ -75,7 +76,7 @@ func parseQuery(m *dns.Msg, w dns.ResponseWriter) {
 					}
 				}
 			} else {
-				rip, err := GetRedirectIp()
+				rip, err := GetRedirectIP()
 				if err == nil {
 					rr, err := dns.NewRR(fmt.Sprintf("%s A %s", q.Name, rip))
 					if err == nil {
@@ -108,14 +109,13 @@ func queueworker() {
 	for {
 		x := <-queue
 
-		log.Printf("Q %s < %s : %t\n", x.Q.Name, x.Ip, x.Reject)
+		log.Printf("Q %s < %s : %t\n", x.Q.Name, x.IP, x.Reject)
 
-		Stat(x.Ip, x.Q.Name)
+		Stat(x.IP, x.Q.Name)
 
 		if x.Answer != nil {
 			log.Printf("ttl: %d \n", x.Answer[0].Header().Ttl)
 			tmp := CacheItem{x.Answer, time.Now()}
-			// cache[x.Q] = tmp
 			synccache.Store(x.Q, tmp)
 		}
 	}
@@ -123,8 +123,6 @@ func queueworker() {
 
 func main() {
 	Init()
-
-	// cache = make(map[dns.Question]CacheItem)
 
 	queue = make(chan Item, 100)
 
@@ -137,8 +135,8 @@ func main() {
 
 	server := &dns.Server{Addr: config.DNSListen, Net: "udp"}
 
-	if config.HttpListen != "" {
-		log.Printf("Starting HTTP at port %v\n", config.HttpListen)
+	if config.HTTPListen != "" {
+		log.Printf("Starting HTTP at port %v\n", config.HTTPListen)
 		go httpserver()
 	}
 	log.Printf("Starting DNS at port %v\n", config.DNSListen)

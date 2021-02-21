@@ -23,7 +23,7 @@
             }"
           >
             <td>{{ item.Date }}</td>
-            <td>{{ item.Ip }}</td>
+            <td>{{ item.IP }}</td>
             <td>{{ item.Q.Name }}</td>
             <td>
               <v-chip
