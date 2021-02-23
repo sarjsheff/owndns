@@ -108,7 +108,7 @@ export default {
           .then((data) => data.json())
           .then((json) => {
             if (json.ok) {
-              this.$store.commit("setuser", json.user);
+              this.$store.dispatch("setuser", json.user);
               this.loading = false;
             } else {
               this.loading = false;

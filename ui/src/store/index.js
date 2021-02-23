@@ -134,6 +134,7 @@ export default new Vuex.Store({
       fetch("/logout").then(() => context.commit("setuser", undefined)).catch(() => context.commit("setuser", undefined))
     },
     setuser(context, user) {
+      console.log("Must REFRESH");
       context.dispatch("getversion");
       context.dispatch("getconfig");
       context.commit("setuser", user);
@@ -203,7 +204,7 @@ export default new Vuex.Store({
         });
     },
     getversion(context) {
-      fetch(`/version.json`)
+      fetch(`/version.json`, { cache: "no-cache" })
         .then(authCheck(context))
         .then((json) => {
           context.commit("setversion", json ? json.version || "" : "");

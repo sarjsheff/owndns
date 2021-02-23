@@ -59,9 +59,9 @@ func parseQuery(m *dns.Msg, w dns.ResponseWriter) {
 					Log(i)
 					// log.Println("found in cache")
 				} else {
-					relays := GetRelaydns()
+					relays := sconfig.GetRelaydns()
 					for _, dnsserver := range relays {
-						in, _, err := cli.Exchange(m1, dnsserver)
+						in, _, err := cli.Exchange(m1, dnsserver.(string))
 
 						if err == nil {
 							m.Answer = in.Answer
@@ -133,13 +133,13 @@ func main() {
 
 	// start server
 
-	server := &dns.Server{Addr: config.DNSListen, Net: "udp"}
+	server := &dns.Server{Addr: sconfig.Get("DNSListen").(string), Net: "udp"}
 
-	if config.HTTPListen != "" {
-		log.Printf("Starting HTTP at port %v\n", config.HTTPListen)
+	if sconfig.Get("HTTPListen").(string) != "" {
+		log.Printf("Starting HTTP at port %v\n", sconfig.Get("HTTPListen"))
 		go httpserver()
 	}
-	log.Printf("Starting DNS at port %v\n", config.DNSListen)
+	log.Printf("Starting DNS at port %v\n", sconfig.Get("DNSListen"))
 	err := server.ListenAndServe()
 	defer server.Shutdown()
 	if err != nil {

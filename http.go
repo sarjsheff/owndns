@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"reflect"
 )
 
 func httpserver() {
@@ -49,65 +48,43 @@ func httpserver() {
 	mux.HandleFunc("/setvalue", checkAuth(HTTPSetValue))
 
 	mux.HandleFunc("/config/", checkAuth(func(w http.ResponseWriter, req *http.Request) {
-		res1, err := json.Marshal(config)
-		if err != nil {
-			log.Println(err)
-			fmt.Fprintf(w, `{"error":"true"}`)
-		} else {
-			w.Write(res1)
-		}
+		res1 := sconfig.Json() //json.Marshal(config)
+		w.Write(res1)
 	}))
 
 	mux.HandleFunc("/rejects/", checkAuth(func(w http.ResponseWriter, req *http.Request) {
-		HTTPCRUDArray(w, req, "rejects", &config.RejectNames)
+		HTTPCRUDArrayObject(w, req, "rejects", "RejectNames")
 	}))
 	mux.HandleFunc("/relaydns/", checkAuth(func(w http.ResponseWriter, req *http.Request) {
-		HTTPCRUDArray(w, req, "relaydns", &config.RelayDNS)
+		HTTPCRUDArrayObject(w, req, "relaydns", "RelayDNS")
 	}))
 	mux.HandleFunc("/rules/", checkAuth(func(w http.ResponseWriter, req *http.Request) {
-		HTTPCRUDArrayObject(w, req, "rules", &config.Rules)
+		HTTPCRUDArrayObject(w, req, "rules", "Rules")
 	}))
 
 	mux.HandleFunc("/users/", checkAuth(func(w http.ResponseWriter, req *http.Request) {
 		HTTPCRUD(w, req, "users", func(res map[string]interface{}) {
-
-			log.Printf("%T\n", res["name"].(map[string]interface{})["Username"])
 			item := res["name"].(map[string]interface{})
-			if _, ok := config.Users[item["Username"].(string)]; ok {
+			if sconfig.GetUser(item["Username"].(string)) != nil {
 				fmt.Fprintf(w, `{"ok":false,"error":"User exist."}`)
 			} else {
-				if config.Users == nil {
-					config.Users = map[string]interface{}{}
-				}
-				config.Users[item["Username"].(string)] = map[string]interface{}{
-					"PasswordHash": fmt.Sprintf("%x", sha256.Sum256([]byte(item["Password"].(string)))),
-					"IsAdmin":      item["IsAdmin"] != nil,
-				}
-				configwriter <- config
+				sconfig.AddUser(item["Username"].(string), fmt.Sprintf("%x", sha256.Sum256([]byte(item["Password"].(string)))), item["IsAdmin"] != nil)
 				fmt.Fprintf(w, `{"ok":true}`)
 			}
-
 		}, func(res map[string]interface{}) {
-			delete(config.Users, res["id"].(string))
-			configwriter <- config
+			sconfig.DelUser(res["id"].(string))
 			fmt.Fprintf(w, `{"ok":true}`)
 		}, func(res map[string]interface{}) {
-			//ArrSaveObject(arr, int(res["id"].(float64)), res["name"])
 
 			item := res["name"].(map[string]interface{})
-			log.Println(item["IsAdmin"])
-			if _, ok := config.Users[res["id"].(string)]; ok {
-				config.Users[res["id"].(string)] = map[string]interface{}{
-					"PasswordHash": config.Users[res["id"].(string)].(map[string]interface{})["PasswordHash"],
-					"IsAdmin":      item["IsAdmin"].(bool) == true,
-				}
-				configwriter <- config
+			if sconfig.GetUser(res["id"].(string)) != nil {
+				sconfig.SetUser(res["id"].(string), item["IsAdmin"].(bool) == true)
 				fmt.Fprintf(w, `{"ok":true}`)
 			} else {
 				fmt.Fprintf(w, `{"ok":false,"error":"User not found."}`)
 			}
 		}, func(res map[string]interface{}) {
-			res1, err := json.Marshal(config.Users)
+			res1, err := json.Marshal(sconfig.Get("Users"))
 			if err != nil {
 				log.Println(err)
 				fmt.Fprintf(w, `{"error":true}`)
@@ -121,7 +98,7 @@ func httpserver() {
 
 	mux.HandleFunc("/ws", WSHandler)
 
-	http.ListenAndServe(config.HTTPListen, mux)
+	http.ListenAndServe(sconfig.Get("HTTPListen").(string), mux)
 
 }
 
@@ -162,18 +139,10 @@ func HTTPSetValue(w http.ResponseWriter, req *http.Request) {
 	dec := json.NewDecoder(req.Body)
 	err := dec.Decode(&params)
 
-	postconfig := config
-
 	if err == nil {
-		rr := reflect.ValueOf(&postconfig).Elem()
 		for key, value := range params {
-			v := rr.FieldByName(key)
-			if v.IsValid() {
-				v.Set(reflect.ValueOf(value))
-			}
+			sconfig.Set(key, value)
 		}
-
-		configwriter <- postconfig
 		fmt.Fprintf(w, `{"ok":"true"}`)
 	} else {
 		fmt.Fprintf(w, `{"error":"true"}`)
@@ -193,7 +162,7 @@ func HTTPCRUD(w http.ResponseWriter, req *http.Request, ctxname string, add CRUD
 
 	err := dec.Decode(&res)
 
-	log.Println(res)
+	//log.Println(res)
 
 	if err != nil {
 		def(nil)
@@ -224,18 +193,20 @@ func HTTPCRUD(w http.ResponseWriter, req *http.Request, ctxname string, add CRUD
 }
 
 // HTTPCRUDArrayObject - Universal HTTP handler for add, delete and set element of configuration array of objects.
-func HTTPCRUDArrayObject(w http.ResponseWriter, req *http.Request, name string, arr *[]interface{}) {
+func HTTPCRUDArrayObject(w http.ResponseWriter, req *http.Request, name string, arr string) {
 	HTTPCRUD(w, req, name, func(res map[string]interface{}) {
-		ArrAddObject(arr, res["name"])
+		sconfig.AddObject(arr, res["name"])
 		fmt.Fprintf(w, `{"ok":"true"}`)
 	}, func(res map[string]interface{}) {
-		ArrDelObject(arr, int(res["id"].(float64)))
+		//ArrDelObject(arr, int(res["id"].(float64)))
+		sconfig.DelObject(arr, int(res["id"].(float64)))
 		fmt.Fprintf(w, `{"ok":"true"}`)
 	}, func(res map[string]interface{}) {
-		ArrSaveObject(arr, int(res["id"].(float64)), res["name"])
+		//ArrSaveObject(arr, int(res["id"].(float64)), res["name"])
+		sconfig.SetObject(arr, int(res["id"].(float64)), res["name"])
 		fmt.Fprintf(w, `{"ok":"true"}`)
 	}, func(res map[string]interface{}) {
-		res1, err := json.Marshal(arr)
+		res1, err := json.Marshal(sconfig.Get(arr))
 		if err != nil {
 			log.Println(err)
 			fmt.Fprintf(w, `{"error":"true"}`)
@@ -246,23 +217,23 @@ func HTTPCRUDArrayObject(w http.ResponseWriter, req *http.Request, name string, 
 }
 
 // HTTPCRUDArray - Universal HTTP handler for add, delete and set element of configuration array of string.
-func HTTPCRUDArray(w http.ResponseWriter, req *http.Request, name string, arr *[]string) {
-	HTTPCRUD(w, req, name, func(res map[string]interface{}) {
-		ArrAdd(arr, res["name"].(string))
-		fmt.Fprintf(w, `{"ok":"true"}`)
-	}, func(res map[string]interface{}) {
-		ArrDel(arr, int(res["id"].(float64)))
-		fmt.Fprintf(w, `{"ok":"true"}`)
-	}, func(res map[string]interface{}) {
-		ArrSave(arr, int(res["id"].(float64)), res["name"].(string))
-		fmt.Fprintf(w, `{"ok":"true"}`)
-	}, func(res map[string]interface{}) {
-		res1, err := json.Marshal(*arr)
-		if err != nil {
-			log.Println(err)
-			fmt.Fprintf(w, `{"error":"true"}`)
-		} else {
-			w.Write(res1)
-		}
-	})
-}
+// func HTTPCRUDArray(w http.ResponseWriter, req *http.Request, name string, arr *[]string) {
+// 	HTTPCRUD(w, req, name, func(res map[string]interface{}) {
+// 		ArrAdd(arr, res["name"].(string))
+// 		fmt.Fprintf(w, `{"ok":"true"}`)
+// 	}, func(res map[string]interface{}) {
+// 		ArrDel(arr, int(res["id"].(float64)))
+// 		fmt.Fprintf(w, `{"ok":"true"}`)
+// 	}, func(res map[string]interface{}) {
+// 		ArrSave(arr, int(res["id"].(float64)), res["name"].(string))
+// 		fmt.Fprintf(w, `{"ok":"true"}`)
+// 	}, func(res map[string]interface{}) {
+// 		res1, err := json.Marshal(*arr)
+// 		if err != nil {
+// 			log.Println(err)
+// 			fmt.Fprintf(w, `{"error":"true"}`)
+// 		} else {
+// 			w.Write(res1)
+// 		}
+// 	})
+// }

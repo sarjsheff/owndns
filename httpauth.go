@@ -73,10 +73,10 @@ func HTTPLogin(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		fmt.Fprintf(w, `{"ok":false}`)
 	} else {
-		u := config.Users[res["username"]]
-		if u != nil && u.(map[string]interface{})["PasswordHash"].(string) == res["password"] {
+		u := sconfig.GetUser(res["username"]) //config.Users[res["username"]]
+		if u != nil && u["PasswordHash"].(string) == res["password"] {
 			session, _ := store.Get(req, "owndns")
-			user := HTTPUser{res["username"], u.(map[string]interface{})["IsAdmin"].(bool)}
+			user := HTTPUser{res["username"], u["IsAdmin"].(bool)}
 
 			ret, _ := json.Marshal(map[string]interface{}{
 				"ok":   true,
